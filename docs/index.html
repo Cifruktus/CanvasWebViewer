@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.github.com; img-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="description" content="View Obsidian Canvas files from public and private GitHub repositories.">
+  <title>CanvasWebViewer</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <div class="app" id="viewer">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="CanvasWebViewer home"><span class="brand-mark" aria-hidden="true">◇</span> CanvasWebViewer</a>
+      <div class="toolbar">
+        <button type="button" id="open-source" hidden>Open canvas</button>
+        <button type="button" id="copy-link" hidden>Copy viewer link</button>
+        <button type="button" id="open-token">GitHub token</button>
+      </div>
+    </header>
+    <main class="landing" id="landing">
+      <section class="opening-panel" aria-labelledby="opening-title">
+        <h1 id="opening-title">Open an Obsidian canvas</h1>
+        <div id="source-home">
+          <form id="source-form" class="form-stack">
+            <label for="source-url">GitHub link to a .canvas file</label>
+            <div class="source-row">
+              <input id="source-url" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://github.com/owner/repo/blob/main/board.canvas" required>
+              <button class="primary" type="submit">Open</button>
+            </div>
+            <details id="source-options">
+              <summary>Attachment paths</summary>
+              <label for="vault-root">Vault folder within the repository</label>
+              <input id="vault-root" type="text" autocomplete="off" spellcheck="false" placeholder="Repository root">
+            </details>
+            <p id="source-error" class="form-error" role="alert" hidden></p>
+          </form>
+        </div>
+        <p id="status" class="load-status" role="status" hidden></p>
+        <div id="load-error" class="load-error" hidden>
+          <p id="error-message" role="alert"></p>
+          <button type="button" id="error-token" hidden>Set GitHub token</button>
+        </div>
+      </section>
+    </main>
+    <main class="workspace" id="workspace" hidden>
+      <aside class="sidebar" aria-label="Canvas navigation">
+        <div class="sidebar-heading">GROUPS</div>
+        <nav id="scenario-list" aria-label="Canvas groups"></nav>
+        <div class="sidebar-footer">
+          <a id="original-file" target="_blank" rel="noopener noreferrer">View on GitHub ↗</a>
+          <div id="revision"></div>
+          <div class="warnings" id="warnings" hidden></div>
+        </div>
+      </aside>
+      <section class="board" aria-label="Canvas">
+        <button type="button" class="expand-button" id="expand-view" aria-label="Fullscreen">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M21 16v5h-5M8 21H3v-5"/></svg>
+          <span class="sr-only" id="expand-label">Fullscreen</span>
+        </button>
+        <button type="button" class="sidebar-toggle" id="toggle-sidebar" aria-label="Canvas groups" aria-expanded="false">Groups</button>
+        <div class="board-heading"><span id="focus-name">Entire canvas</span></div>
+        <svg id="canvas" role="group" tabindex="0" aria-label="Canvas. Drag or use arrow keys to move. Use the scroll wheel, plus or minus to zoom.">
+          <defs>
+            <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" class="grid-dot"/></pattern>
+            <marker id="arrow" viewBox="0 -5 10 10" refX="9" refY="0" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,-4L9,0L0,4Z" fill="context-stroke"/></marker>
+          </defs>
+          <rect id="grid-area" fill="url(#grid)"/>
+          <g id="scene"></g>
+        </svg>
+        <div class="empty-state" id="empty-state" hidden>This canvas has no cards.</div>
+        <div class="board-footer">
+          <span class="gesture-hint">Drag to move · Scroll to zoom · Double-click an image to open it</span>
+          <div class="zoom-controls" role="group" aria-label="Zoom">
+            <button type="button" id="zoom-out" aria-label="Zoom out">−</button>
+            <output id="zoom-value" aria-label="Current zoom">100%</output>
+            <button type="button" id="zoom-in" aria-label="Zoom in">+</button>
+            <span class="control-divider"></span>
+            <button type="button" id="fit" aria-label="Fit entire canvas" title="Fit entire canvas (0)">Fit canvas</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <p id="notice" class="notice" role="status" hidden></p>
+  <dialog id="source-dialog" aria-labelledby="source-title">
+    <div class="dialog-toolbar"><strong id="source-title">Open a canvas</strong><button type="button" data-close>Cancel</button></div>
+    <div class="dialog-body" id="source-modal"></div>
+  </dialog>
+  <dialog id="token-dialog" aria-labelledby="token-title">
+    <div class="dialog-toolbar"><strong id="token-title">GitHub token</strong><button type="button" data-close>Close</button></div>
+    <form id="token-form" class="dialog-body form-stack">
+      <label for="token">Personal access token</label>
+      <input id="token" type="password" autocomplete="off" spellcheck="false" required>
+      <p id="token-status" class="field-help"></p>
+      <p class="field-help">Use a token with Contents read access to the repository. The token is saved in this browser.</p>
+      <p class="form-error" id="token-error" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <button type="submit" class="primary">Save token</button>
+        <button type="button" id="remove-token" hidden>Remove saved token</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="image-dialog" aria-labelledby="image-title">
+    <div class="dialog-toolbar"><div><strong id="image-title"></strong><div id="image-size"></div></div><button type="button" id="close-dialog" aria-label="Close image">Close ×</button></div>
+    <div class="image-scroll"><img id="full-image" alt=""></div>
+  </dialog>
+</body>
+</html>
